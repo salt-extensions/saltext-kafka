@@ -17,11 +17,15 @@ def __virtual__():
 
 def _client(bootstrap_servers, client_config=None):
     """Create an AdminClient. Kept private so callers always close it."""
-    from kafka import KafkaAdminClient
-
+    admin_client = getattr(importlib.import_module("kafka"), "KafkaAdminClient")
     config = dict(client_config or {})
     config["bootstrap_servers"] = bootstrap_servers
-    return KafkaAdminClient(**config)
+    return admin_client(**config)
+
+
+def _kafka_attribute(module_name, attribute_name):
+    """Load an optional kafka-python API without importing it at module load time."""
+    return getattr(importlib.import_module(module_name), attribute_name)
 
 
 def _plain(value):
@@ -254,22 +258,20 @@ def acl_list(bootstrap_servers="localhost:9092", client_config=None):
 
         salt-call kafka.acl_list bootstrap_servers='broker1:9092'
     """
-    from kafka.admin.acl_resource import (
-        ACLFilter,
-        ACLOperation,
-        ACLPermissionType,
-        ACLResourcePatternType,
-        ResourceType,
-    )
+    acl_filter_cls = _kafka_attribute("kafka.admin.acl_resource", "ACLFilter")
+    operation_enum = _kafka_attribute("kafka.admin.acl_resource", "ACLOperation")
+    permission_enum = _kafka_attribute("kafka.admin.acl_resource", "ACLPermissionType")
+    pattern_type_enum = _kafka_attribute("kafka.admin.acl_resource", "ACLResourcePatternType")
+    resource_type_enum = _kafka_attribute("kafka.admin.acl_resource", "ResourceType")
 
-    acl_filter = ACLFilter(
-        resource_type=ResourceType.ANY,
+    acl_filter = acl_filter_cls(
+        resource_type=resource_type_enum.ANY,
         resource_name=None,
-        pattern_type=ACLResourcePatternType.ANY,
+        pattern_type=pattern_type_enum.ANY,
         principal=None,
         host=None,
-        operation=ACLOperation.ANY,
-        permission_type=ACLPermissionType.ANY,
+        operation=operation_enum.ANY,
+        permission_type=permission_enum.ANY,
     )
     admin = _client(bootstrap_servers, client_config)
     try:
@@ -297,23 +299,21 @@ def acl_create(binding, bootstrap_servers="localhost:9092", client_config=None):
 
         salt-call kafka.acl_create binding='{"resource_type":"TOPIC","resource_name":"events","principal":"User:reader","operation":"READ","permission_type":"ALLOW"}'
     """
-    from kafka.admin.acl_resource import (
-        ACL,
-        ACLOperation,
-        ACLPermissionType,
-        ACLResourcePatternType,
-        ResourcePattern,
-        ResourceType,
-    )
+    acl_cls = _kafka_attribute("kafka.admin.acl_resource", "ACL")
+    operation_enum = _kafka_attribute("kafka.admin.acl_resource", "ACLOperation")
+    permission_enum = _kafka_attribute("kafka.admin.acl_resource", "ACLPermissionType")
+    pattern_type_enum = _kafka_attribute("kafka.admin.acl_resource", "ACLResourcePatternType")
+    resource_pattern_cls = _kafka_attribute("kafka.admin.acl_resource", "ResourcePattern")
+    resource_type_enum = _kafka_attribute("kafka.admin.acl_resource", "ResourceType")
 
-    resource_type = ResourceType[binding["resource_type"].upper()]
-    pattern_type = ACLResourcePatternType[binding.get("pattern_type", "LITERAL").upper()]
-    acl = ACL(
+    resource_type = resource_type_enum[binding["resource_type"].upper()]
+    pattern_type = pattern_type_enum[binding.get("pattern_type", "LITERAL").upper()]
+    acl = acl_cls(
         principal=binding["principal"],
         host=binding.get("host", "*"),
-        operation=ACLOperation[binding["operation"].upper()],
-        permission_type=ACLPermissionType[binding["permission_type"].upper()],
-        resource_pattern=ResourcePattern(
+        operation=operation_enum[binding["operation"].upper()],
+        permission_type=permission_enum[binding["permission_type"].upper()],
+        resource_pattern=resource_pattern_cls(
             resource_type,
             binding["resource_name"],
             pattern_type,
@@ -338,25 +338,23 @@ def acl_delete(binding, bootstrap_servers="localhost:9092", client_config=None):
 
         salt-call kafka.acl_delete binding='{"resource_type":"TOPIC","resource_name":"events","principal":"User:reader","operation":"READ"}'
     """
-    from kafka.admin.acl_resource import (
-        ACLFilter,
-        ACLOperation,
-        ACLPermissionType,
-        ACLResourcePatternType,
-        ResourceType,
-    )
+    acl_filter_cls = _kafka_attribute("kafka.admin.acl_resource", "ACLFilter")
+    operation_enum = _kafka_attribute("kafka.admin.acl_resource", "ACLOperation")
+    permission_enum = _kafka_attribute("kafka.admin.acl_resource", "ACLPermissionType")
+    pattern_type_enum = _kafka_attribute("kafka.admin.acl_resource", "ACLResourcePatternType")
+    resource_type_enum = _kafka_attribute("kafka.admin.acl_resource", "ResourceType")
 
-    acl_filter = ACLFilter(
-        resource_type=ResourceType[binding["resource_type"].upper()],
+    acl_filter = acl_filter_cls(
+        resource_type=resource_type_enum[binding["resource_type"].upper()],
         resource_name=binding["resource_name"],
-        pattern_type=ACLResourcePatternType[binding.get("pattern_type", "LITERAL").upper()],
+        pattern_type=pattern_type_enum[binding.get("pattern_type", "LITERAL").upper()],
         principal=binding["principal"],
         host=binding.get("host"),
-        operation=ACLOperation[binding["operation"].upper()],
+        operation=operation_enum[binding["operation"].upper()],
         permission_type=(
-            ACLPermissionType[binding["permission_type"].upper()]
+            permission_enum[binding["permission_type"].upper()]
             if binding.get("permission_type")
-            else ACLPermissionType.ANY
+            else permission_enum.ANY
         ),
     )
     return _request(bootstrap_servers, client_config, "delete_acls", [acl_filter])
@@ -386,10 +384,10 @@ def scram_user_set(
 
         salt-call kafka.scram_user_set service-a password='{{ pillar["kafka"]["service_a_password"] }}'
     """
-    from kafka.admin import ScramMechanism, UserScramCredentialUpsertion
-
-    scram = ScramMechanism[mechanism.replace("-", "_")]
-    upsertion = UserScramCredentialUpsertion(username, scram, password, int(iterations))
+    scram_mechanism = _kafka_attribute("kafka.admin", "ScramMechanism")
+    upsertion_cls = _kafka_attribute("kafka.admin", "UserScramCredentialUpsertion")
+    scram = scram_mechanism[mechanism.replace("-", "_")]
+    upsertion = upsertion_cls(username, scram, password, int(iterations))
     return _request(
         bootstrap_servers,
         client_config,
@@ -417,9 +415,9 @@ def scram_user_delete(
 
         salt-call kafka.scram_user_delete service-a mechanism=SCRAM-SHA-512
     """
-    from kafka.admin import ScramMechanism, UserScramCredentialDeletion
-
-    deletion = UserScramCredentialDeletion(username, ScramMechanism[mechanism.replace("-", "_")])
+    scram_mechanism = _kafka_attribute("kafka.admin", "ScramMechanism")
+    deletion_cls = _kafka_attribute("kafka.admin", "UserScramCredentialDeletion")
+    deletion = deletion_cls(username, scram_mechanism[mechanism.replace("-", "_")])
     return _request(
         bootstrap_servers,
         client_config,

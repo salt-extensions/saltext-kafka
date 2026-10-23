@@ -32,8 +32,8 @@ def test_topic_present_test_mode_does_not_create():
     )
     result = kafka_state.topic_present("events")
     assert result["result"] is None
-    assert result["changes"] == {}
-    assert calls == []
+    assert not result["changes"]
+    assert not calls
 
 
 def test_topic_present_increases_partitions():
@@ -60,8 +60,8 @@ def test_topic_absent_is_idempotent():
     kafka_state.__salt__["kafka.topic_delete"] = lambda *args: calls.append(args)
     result = kafka_state.topic_absent("events")
     assert result["result"] is True
-    assert result["changes"] == {}
-    assert calls == []
+    assert not result["changes"]
+    assert not calls
 
 
 def test_scram_present_does_not_rotate_existing_credential():
@@ -77,5 +77,5 @@ def test_scram_present_does_not_rotate_existing_credential():
         }
     )
     result = kafka_state.scram_user_present("service-a", "new-password")
-    assert result["changes"] == {}
-    assert calls == []
+    assert not result["changes"]
+    assert not calls
