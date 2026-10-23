@@ -3,3 +3,7 @@ The changelog format is based on [Keep a Changelog](https://keepachangelog.com/e
 This project uses [Semantic Versioning](https://semver.org/) - MAJOR.MINOR.PATCH
 
 # Changelog
+
+## 0.0.1 (2026-10-23)
+
+No significant changes.
