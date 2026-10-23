@@ -67,7 +67,7 @@ dev = [
 # When initializing the dev env using the included automation, pass
 # `--extras` to install them automatically.
 dev_extra = [
-    "black==26.10.0",
+    "black==26.10.1",
     "isort==9.0.2",
     "coverage==7.16.2",
 ]
