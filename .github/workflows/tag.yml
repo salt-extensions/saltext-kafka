@@ -12,6 +12,8 @@ on:
     tags:
       - "v*"  # Only tags starting with "v" for "v1.0.0", etc.
 
+permissions: {}
+
 cache-mode: none
 
 concurrency:
@@ -23,6 +25,8 @@ jobs:
   get_version_tag:
     name: Extract version from tag
     runs-on: ubuntu-26.04
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.get_version_tag.outputs.version }}
 

@@ -4,6 +4,8 @@ name: Pull Request
 on:
   pull_request:
 
+permissions: {}
+
 concurrency:
   # Abort obsolete runs when the PR is updated with new commits
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -27,3 +29,5 @@ jobs:
     needs:
       - call_central_workflow
     uses: ./.github/workflows/set-resolution-action.yml
+    permissions:
+      actions: write
