@@ -8,6 +8,8 @@ on:
     tags-ignore:
       - '*'   # Ignore pushes to tags
 
+permissions: {}
+
 concurrency:
   # Avoid parallel runs for consecutive pushes to main. In-progress runs
   # are not cancelled since they may deploy docs or prepare a release PR,
@@ -21,6 +23,8 @@ jobs:
   check_release_in_progress:
     name: Skip CI While Releasing
     runs-on: ubuntu-26.04
+    permissions:
+      actions: read
     outputs:
       count: ${{ steps.workflow_count.outputs.count }}
 
@@ -68,6 +72,8 @@ jobs:
       - call_central_workflow
     if: success() && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: ubuntu-26.04
+    permissions:
+      contents: read
     outputs:
       news-fragments-available: ${{ steps.check-available.outputs.available }}
 
@@ -108,3 +114,5 @@ jobs:
     # Not always() since that would resist cancellation of the whole run
     if: ${{ !cancelled() && needs.check_release_in_progress.outputs.count == '0' }}
     uses: ./.github/workflows/set-resolution-action.yml
+    permissions:
+      actions: write

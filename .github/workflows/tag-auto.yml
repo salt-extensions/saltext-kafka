@@ -17,6 +17,8 @@ on:
     paths:
       - CHANGELOG.md
 
+permissions: {}
+
 cache-mode: none
 
 concurrency:

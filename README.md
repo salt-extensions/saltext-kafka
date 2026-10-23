@@ -5,7 +5,7 @@ Salt Extension for interacting with Apache Kafka
 ## Security
 
 If you discover a security vulnerability, please refer
-to [Salt's security guide][security].
+to our [security policy][security], which directs reports to Salt's private reporting process.
 
 ## User Documentation
 
@@ -91,7 +91,7 @@ You can also contribute by:
 Any of these things are super valuable to our community, and we sincerely
 appreciate every contribution!
 
-[security]: https://github.com/saltstack/salt/blob/master/SECURITY.md
+[security]: SECURITY.md
 [salt-extensions-guide]: https://salt-extensions.github.io/salt-extension-copier/
 [writing-tests]: https://salt-extensions.github.io/salt-extension-copier/topics/testing/writing.html
 [running-tests]: https://salt-extensions.github.io/salt-extension-copier/topics/testing/running.html
