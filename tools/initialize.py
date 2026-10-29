@@ -10,15 +10,16 @@ if __name__ == "__main__":
         description="Initialize or update the project development environment"
     )
     parser.add_argument(
-        "--extras",
+        "--no-extras",
         action="store_true",
-        help="Install optional development tools into the venv as well (dev_extra)",
+        help="Do not install optional development tools into the venv (dev_extra group)",
     )
     parser.add_argument(
         "--skip-install",
         action="store_true",
         help=(
-            "Only (re)install the project if the venv was freshly created. "
+            "Only (re)install the project if the venv was freshly created "
+            "or pyproject.toml changed since the last install. "
             "Speeds up repeated invocations, e.g. on each shell entry via direnv"
         ),
     )
@@ -28,12 +29,13 @@ if __name__ == "__main__":
         help="Print the path of the virtual environment to stdout (used by .envrc)",
     )
     args = parser.parse_args()
+    init_or_update = True
     try:
         prompt.ensure_utf8()
         ensure_git()
-        venv = ensure_project_venv(
+        venv, init_or_update = ensure_project_venv(
             reinstall="auto" if args.skip_install else True,
-            install_extras=args.extras,
+            no_extras=args.no_extras,
         )
     except Exception as err:  # pylint: disable=broad-except
         finish_task(
@@ -47,4 +49,6 @@ if __name__ == "__main__":
         )
     if args.print_venv:
         print(venv)
-    finish_task("Successfully initialized environment", True)
+    if init_or_update:
+        finish_task("Successfully initialized environment", True)
+    finish_task("venv OK", True, tight=True)

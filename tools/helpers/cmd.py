@@ -9,6 +9,7 @@ import shlex
 import shutil
 import subprocess
 from contextlib import contextmanager
+from dataclasses import KW_ONLY
 from dataclasses import dataclass
 from dataclasses import field
 from pathlib import Path
@@ -209,17 +210,32 @@ class Command:
     A command object, can be instantiated directly. Does not follow ``Local``.
     """
 
-    exe: Executable | str
+    _exe: Executable | str
     args: tuple[str, ...] = ()
+    _: KW_ONLY
+    lazy: bool = False
 
     def __post_init__(self):
-        if not isinstance(self.exe, Executable):
-            if not (full_exe := self._which(self.exe)):
-                raise CommandNotFound(self.exe)
-            object.__setattr__(self, "exe", Executable(full_exe))
+        if not self.lazy and not isinstance(self._exe, Executable):
+            self._init_exe()
+
+    def _init_exe(self) -> Executable:
+        ret_exe = self._exe
+        if not isinstance(ret_exe, Executable):
+            if not (full_exe := self._which(self._exe)):
+                raise CommandNotFound(self._exe)
+            ret_exe = Executable(full_exe)
+            object.__setattr__(self, "_exe", ret_exe)
+        return ret_exe
 
     def _which(self, exe):
         return shutil.which(exe)
+
+    @property
+    def exe(self) -> Executable:
+        if not isinstance(self._exe, Executable):
+            return self._init_exe()
+        return self._exe
 
     def _get_env(self, overrides=None):
         base = {k: str(v) for k, v in os.environ.items()}
@@ -238,6 +254,9 @@ class Command:
             git("commit", "-m", "testcommit")
 
         """
+        if not isinstance(self._exe, Executable):
+            # Fail early when the executable was not resolved during post_init
+            self._init_exe()
         if not isinstance(arg_or_args, tuple):
             arg_or_args = (arg_or_args,)
         return type(self)(self.exe, (*self.args, *arg_or_args))
@@ -311,5 +330,5 @@ class LocalCommand(Command):
         return base
 
 
-# We must assume git is installed
-git = local["git"]
+# Don't crash when this file is just imported and git is absent.
+git = LocalCommand("git", lazy=True)
