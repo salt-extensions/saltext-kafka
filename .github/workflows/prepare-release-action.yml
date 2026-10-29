@@ -3,11 +3,6 @@ name: Prepare Release PR
 
 on:
   workflow_call:
-    secrets:
-      AUTORELEASE_CLID:
-        required: true
-      AUTORELEASE_PRIV:
-        required: true
   workflow_dispatch:
     inputs:
       version:
@@ -16,29 +11,30 @@ on:
         default: ''
         type: string
 
+concurrency:
+  group: prepare-release-pr
+  cancel-in-progress: true
+
+permissions: {}
+
 jobs:
   update-release:
     name: Render changelog and create/update PR
     runs-on: ubuntu-26.04
     permissions:
-      # The release branch and PR are managed using the autorelease app's token.
-      contents: read
+      contents: write  # Create/update autorelease branch
+      pull-requests: write  # Create autorelease PR
     if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
 
     steps:
 
-      - name: Generate autorelease token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3.2.0
-        id: generate-token
-        with:
-          client-id: ${{ secrets.AUTORELEASE_CLID }}
-          private-key: ${{ secrets.AUTORELEASE_PRIV }}
-
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Python 3.14
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: '3.14'
 
@@ -63,9 +59,9 @@ jobs:
           sed -i -e 's/[[:space:]]*$//' CHANGELOG.md  # Remove trailing whitespace
 
       - name: Create/update release PR
+        # zizmor: ignore[superfluous-actions] Handles signed commits and idempotent PR updates.
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
         with:
-          token: ${{ steps.generate-token.outputs.token }}
           commit-message: Release v${{ (github.event_name == 'workflow_dispatch' && inputs.version != '') && inputs.version || steps.next-version.outputs.version }}
           branch: release/auto
           sign-commits: true
@@ -82,4 +78,4 @@ jobs:
 
       - name: Upload Exit Status
         if: ${{ !cancelled() }}
-        uses: ./.github/actions/upload-exitstatus
+        uses: $/.github/actions/upload-exitstatus

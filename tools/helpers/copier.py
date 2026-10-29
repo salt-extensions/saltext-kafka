@@ -105,19 +105,22 @@ def discover_venv_python():
     return None
 
 
-def finish_task(msg, success, err_exit=False, extra=None):
+def finish_task(msg, success, err_exit=False, extra=None, tight=False):
     """
     Print final conclusion of task (migration) run in Copier.
 
     We usually want to exit with 0, even when something fails,
     because a failing task/migration should not crash Copier.
     """
-    prompt.pprint("\n", stream=sys.stderr)
+    sep = ""
+    if not tight:
+        sep = "\n"
+        prompt.pprint(sep, stream=sys.stderr)
     if success:
-        prompt.pprint(f"\n    ✓ {msg}", bold=True, bg=prompt.DARKGREEN, stream=sys.stderr)
+        prompt.pprint(f"{sep}    ✓ {msg}", bold=True, bg=prompt.DARKGREEN, stream=sys.stderr)
     elif success is None:
         prompt.pprint(
-            f"\n    ✓ {msg}", bold=True, fg=prompt.YELLOW, bg=prompt.DARKGREEN, stream=sys.stderr
+            f"{sep}    ✓ {msg}", bold=True, fg=prompt.YELLOW, bg=prompt.DARKGREEN, stream=sys.stderr
         )
         success = True
     else:
