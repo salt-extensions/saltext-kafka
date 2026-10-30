@@ -69,7 +69,7 @@ dev = [
 dev_extra = [
     "black==26.10.0",
     "isort==9.0.2",
-    "coverage==7.16.2",
+    "coverage==7.17.0",
 ]
 docs = [
   "sphinx",
